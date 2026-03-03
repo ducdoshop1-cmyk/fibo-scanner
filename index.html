@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIBO SCANNER — Binance Spot 1D</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080b12;
+    --surface: #0d1117;
+    --surface2: #111827;
+    --border: #1e2d42;
+    --accent: #00d4ff;
+    --green: #00e5a0;
+    --red: #ff4757;
+    --yellow: #ffd32a;
+    --text: #e2e8f0;
+    --muted: #4a5568;
+    --fibo-236: #38bdf8;
+    --fibo-382: #818cf8;
+    --fibo-5:   #a78bfa;
+    --fibo-618: #f59e0b;
+    --fibo-702: #f97316;
+    --fibo-786: #ef4444;
+    --fibo-86:  #dc2626;
+    --font: 'IBM Plex Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    overflow-x: hidden;
+    font-size: 13px;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container { position: relative; z-index: 1; padding: 20px 24px; max-width: 1800px; margin: 0 auto; }
+
+  /* ===== HEADER ===== */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .logo { display: flex; align-items: center; gap: 12px; }
+
+  .logo-icon {
+    width: 42px; height: 42px;
+    background: linear-gradient(135deg, var(--accent), #0070ff);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 0 20px rgba(0,212,255,0.25);
+  }
+
+  .logo h1 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    background: linear-gradient(90deg, var(--accent), #60a5fa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .logo-sub { font-size: 10px; color: var(--muted); letter-spacing: 1px; margin-top: 3px; }
+
+  /* ===== CONTROL PANEL ===== */
+  .control-panel {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    align-items: flex-end;
+  }
+
+  .ctrl-group { display: flex; flex-direction: column; gap: 6px; }
+
+  .ctrl-group label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .ctrl-group select,
+  .ctrl-group input[type="date"] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 12px;
+    padding: 8px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+    cursor: pointer;
+  }
+
+  .ctrl-group select { min-width: 150px; }
+  .ctrl-group input[type="date"] { min-width: 148px; color-scheme: dark; }
+  .ctrl-group select:focus,
+  .ctrl-group input:focus { border-color: var(--accent); }
+  .ctrl-group select option { background: #111827; }
+
+  .date-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .date-sep { color: var(--muted); font-size: 11px; }
+
+  /* ===== CUSTOM DATE PICKER ===== */
+  .dp-wrap { position: relative; }
+
+  .dp-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    min-width: 148px;
+    transition: border-color 0.2s;
+    user-select: none;
+  }
+
+  .dp-input:hover,
+  .dp-input.open { border-color: var(--accent); }
+
+  .dp-input span { font-size: 12px; flex: 1; }
+  .dp-input .dp-icon { color: var(--muted); font-size: 13px; }
+
+  /* Calendar dropdown */
+  .dp-calendar {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 1000;
+    background: #0f1724;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    min-width: 260px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    animation: calIn 0.15s ease;
+  }
+
+  .dp-calendar.visible { display: block; }
+
+  @keyframes calIn {
+    from { opacity:0; transform: translateY(-6px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  /* Header: prev / month-year / next */
+  .dp-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .dp-nav-btn {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    font-family: var(--font);
+  }
+
+  .dp-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .dp-title {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .dp-month-sel,
+  .dp-year-sel {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 11px;
+    padding: 4px 6px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .dp-month-sel:focus,
+  .dp-year-sel:focus { border-color: var(--accent); }
+  .dp-month-sel option,
+  .dp-year-sel option { background: #111827; }
+
+  /* Day names */
+  .dp-daynames {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-bottom: 6px;
+  }
+
+  .dp-dayname {
+    text-align: center;
+    font-size: 9px;
+    color: var(--muted);
+    padding: 4px 0;
+    letter-spacing: 0.5px;
+  }
+
+  .dp-dayname:first-child { color: var(--red); }   /* CN */
+
+  /* Days grid */
+  .dp-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+  }
+
+  .dp-day {
+    text-align: center;
+    font-size: 11px;
+    padding: 6px 2px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.12s;
+    border: 1px solid transparent;
+  }
+
+  .dp-day:hover:not(.dp-day-empty):not(.dp-day-selected) {
+    background: rgba(0,212,255,0.1);
+    border-color: rgba(0,212,255,0.2);
+  }
+
+  .dp-day.dp-day-empty { color: var(--muted); opacity: 0.3; cursor: default; font-size: 10px; }
+  .dp-day.dp-day-today { color: var(--accent); font-weight: 700; }
+
+  .dp-day.dp-day-selected {
+    background: linear-gradient(135deg, var(--accent), #0070ff);
+    color: #000;
+    font-weight: 700;
+    border-color: transparent;
+  }
+
+  .dp-day.dp-day-in-range {
+    background: rgba(0,212,255,0.08);
+  }
+
+  .dp-day.dp-day-sunday { color: rgba(255,71,87,0.7); }
+
+  /* Quick picks */
+  .dp-quick {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+
+  .dp-quick-btn {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: var(--font);
+    transition: all 0.15s;
+  }
+
+  .dp-quick-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Mode Toggle */
+  .mode-toggle {
+    display: flex;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .mode-btn {
+    padding: 8px 18px;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--font);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .mode-btn.active-up   { background: rgba(0,229,160,0.14); color: var(--green); }
+  .mode-btn.active-down { background: rgba(255,71,87,0.14);  color: var(--red); }
+
+  /* Buttons */
+  .btn {
+    padding: 9px 20px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font);
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #0070ff);
+    color: #000;
+    box-shadow: 0 4px 14px rgba(0,212,255,0.25);
+  }
+
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,212,255,0.4); }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  .ctrl-actions { display: flex; gap: 10px; align-items: flex-end; }
+
+  /* ===== COIN SECTION ===== */
+  .coin-section {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin-bottom: 18px;
+  }
+
+  .coin-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .coin-section-header h3 { font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+
+  .coin-preset-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .preset-btn {
+    padding: 5px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: var(--font);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .preset-btn:hover,
+  .preset-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,0.06); }
+
+  .coin-textarea {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 11px;
+    resize: vertical;
+    min-height: 68px;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.6;
+  }
+
+  .coin-textarea:focus { border-color: var(--accent); }
+  .coin-meta { font-size: 10px; color: var(--muted); margin-top: 6px; }
+
+  /* ===== STATS BAR ===== */
+  .stats-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .stat-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 130px;
+  }
+
+  .stat-card .s-label { font-size: 9px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .stat-card .s-value { font-size: 22px; font-weight: 700; line-height: 1.1; }
+  .s-value.green  { color: var(--green); }
+  .s-value.red    { color: var(--red); }
+  .s-value.accent { color: var(--accent); }
+  .s-value.yellow { color: var(--yellow); }
+
+  /* ===== STATUS ===== */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    font-size: 11px;
+  }
+
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+  .status-dot.loading { background: var(--yellow); animation: pulse 1s infinite; }
+  .status-dot.ok  { background: var(--green); }
+  .status-dot.err { background: var(--red); }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .progress-bar { height: 2px; background: var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 12px; display: none; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #0070ff); border-radius: 2px; transition: width 0.3s; width: 0%; }
+
+  /* ===== LEGEND ===== */
+  .legend {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+    padding: 9px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    align-items: center;
+    font-size: 10px;
+  }
+
+  .legend-title { color: var(--muted); }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+  /* ===== FILTER BAR ===== */
+  .filter-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filter-input {
+    padding: 7px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 12px;
+    outline: none;
+    width: 200px;
+    transition: border-color 0.2s;
+  }
+
+  .filter-input:focus { border-color: var(--accent); }
+  .count-label { font-size: 10px; color: var(--muted); margin-left: auto; }
+
+  /* ===== TABLE ===== */
+  .table-wrapper {
+    overflow-x: auto;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+
+  table { width: 100%; border-collapse: collapse; min-width: 1300px; }
+
+  thead tr { background: var(--surface2); border-bottom: 2px solid var(--border); }
+
+  thead th {
+    padding: 11px 10px;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-align: right;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    text-transform: uppercase;
+    font-family: var(--font);
+  }
+
+  thead th:first-child { text-align: left; padding-left: 14px; }
+  thead th:last-child  { cursor: default; }
+  thead th:hover:not(:last-child) { color: var(--text); }
+  thead th.sort-asc::after  { content: ' ↑'; color: var(--accent); }
+  thead th.sort-desc::after { content: ' ↓'; color: var(--accent); }
+
+  tbody tr { border-bottom: 1px solid rgba(30,45,66,0.5); transition: background 0.12s; }
+  tbody tr:hover { background: rgba(0,212,255,0.033); }
+
+  tbody td {
+    padding: 9px 10px;
+    font-size: 11px;
+    text-align: right;
+    white-space: nowrap;
+    font-family: var(--font);
+  }
+
+  tbody td:first-child { text-align: left; padding-left: 14px; }
+
+  .coin-cell { display: flex; align-items: center; gap: 8px; }
+
+  .coin-icon {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0070ff, var(--accent));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px;
+    font-weight: 700;
+    color: #000;
+    flex-shrink: 0;
+  }
+
+  .coin-name { font-weight: 700; font-size: 12px; }
+  .coin-sub  { font-size: 9px; margin-top: 1px; }
+
+  .pct-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .pct-badge.up   { background: rgba(0,229,160,0.12); color: var(--green); }
+  .pct-badge.down { background: rgba(255,71,87,0.12);  color: var(--red); }
+
+  .fibo-val  { font-size: 11px; }
+  .fibo-pct  { font-size: 9px; margin-top: 1px; }
+
+  .fibo-236 .fibo-val { color: var(--fibo-236); }
+  .fibo-382 .fibo-val { color: var(--fibo-382); }
+  .fibo-5   .fibo-val { color: var(--fibo-5); }
+  .fibo-618 .fibo-val { color: var(--fibo-618); }
+  .fibo-702 .fibo-val { color: var(--fibo-702); }
+  .fibo-786 .fibo-val { color: var(--fibo-786); }
+  .fibo-86  .fibo-val { color: var(--fibo-86); }
+
+  .near-level { background: rgba(255,211,42,0.07); }
+
+  .high-val  { color: var(--red);   font-weight: 600; }
+  .low-val   { color: var(--green); font-weight: 600; }
+  .price-val { font-weight: 600; }
+  .date-cell { color: var(--muted); font-size: 10px; }
+
+  .tv-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 9px;
+    background: rgba(0,212,255,0.07);
+    border: 1px solid rgba(0,212,255,0.18);
+    border-radius: 6px;
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 10px;
+    font-family: var(--font);
+    transition: all 0.15s;
+  }
+
+  .tv-link:hover { background: rgba(0,212,255,0.18); }
+
+  /* ===== EMPTY STATE ===== */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+  .empty-state .big { font-size: 44px; margin-bottom: 14px; }
+  .empty-state h3 { font-size: 16px; margin-bottom: 6px; color: var(--text); font-weight: 600; }
+  .empty-state p  { font-size: 11px; }
+
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  @media(max-width:768px){
+    .control-panel { flex-direction: column; }
+    header { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">📐</div>
+      <div>
+        <h1>FIBO SCANNER</h1>
+        <div class="logo-sub">BINANCE SPOT · KHUNG 1D · TỰ ĐỘNG ĐỈNH / ĐÁY</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTROL PANEL -->
+  <div class="control-panel">
+
+    <div class="ctrl-group">
+      <label>Chế độ Fibo</label>
+      <div class="mode-toggle">
+        <button class="mode-btn active-up"   id="btnUp"   onclick="setMode('UP')">▲ Fibo Up</button>
+        <button class="mode-btn"             id="btnDown" onclick="setMode('DOWN')">▼ Fibo Down</button>
+      </div>
+    </div>
+
+    <div class="ctrl-group">
+      <label>Lookback (nến 1D)</label>
+      <select id="lookbackDays" onchange="onLookbackChange()">
+        <option value="60">60 nến</option>
+        <option value="90" selected>90 nến</option>
+        <option value="180">180 nến</option>
+        <option value="365">365 nến</option>
+        <option value="custom">Tùy chọn ngày…</option>
+      </select>
+    </div>
+
+    <div class="ctrl-group" id="dateRangeGroup" style="display:none">
+      <label>Khoảng thời gian</label>
+      <div class="date-row">
+        <div class="dp-wrap" id="dpFromWrap">
+          <div class="dp-input" id="dpFromInput" onclick="dpToggle('from')">
+            <span class="dp-icon">📅</span>
+            <span id="dpFromDisplay">Từ ngày</span>
+          </div>
+          <div class="dp-calendar" id="dpFromCal"></div>
+        </div>
+        <span class="date-sep">→</span>
+        <div class="dp-wrap" id="dpToWrap">
+          <div class="dp-input" id="dpToInput" onclick="dpToggle('to')">
+            <span class="dp-icon">📅</span>
+            <span id="dpToDisplay">Đến ngày</span>
+          </div>
+          <div class="dp-calendar" id="dpToCal"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ctrl-actions">
+      <button class="btn btn-primary" id="loadBtn" onclick="startScan()">⚡ SCAN FIBO</button>
+      <button class="btn btn-secondary" onclick="exportCSV()">↓ Tải xuống</button>
+    </div>
+
+  </div>
+
+  <!-- COIN SECTION -->
+  <div class="coin-section">
+    <div class="coin-section-header">
+      <h3>Danh sách coin cần quét</h3>
+      <div class="coin-preset-btns">
+        <button class="preset-btn active" id="preset-top100" onclick="loadPreset('top100')">Top 100</button>
+        <button class="preset-btn"        id="preset-all"    onclick="loadPreset('all')">Toàn bộ SPOT Binance</button>
+        <button class="preset-btn"        id="preset-custom" onclick="loadPreset('custom')">Tự nhập</button>
+      </div>
+    </div>
+    <textarea class="coin-textarea" id="coinList" readonly placeholder="Danh sách coin sẽ hiển thị ở đây…"></textarea>
+    <div class="coin-meta" id="coinMeta"></div>
+  </div>
+
+  <!-- STATS BAR -->
+  <div class="stats-bar">
+    <div class="stat-card">
+      <span class="s-label">Đã quét</span>
+      <span class="s-value accent" id="statTotal">0</span>
+    </div>
+    <div class="stat-card">
+      <span class="s-label">Gần Fibo 0.618</span>
+      <span class="s-value yellow" id="statNear618">0</span>
+    </div>
+    <div class="stat-card">
+      <span class="s-label">Trên đáy</span>
+      <span class="s-value green" id="statUp">0</span>
+    </div>
+    <div class="stat-card">
+      <span class="s-label">Dưới đỉnh</span>
+      <span class="s-value red" id="statDown">0</span>
+    </div>
+    <div class="stat-card">
+      <span class="s-label">Lỗi</span>
+      <span class="s-value" id="statErr" style="color:var(--muted)">0</span>
+    </div>
+  </div>
+
+  <!-- STATUS -->
+  <div class="status-bar">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText" style="color:var(--muted)">Chọn danh sách coin và nhấn ⚡ SCAN FIBO để bắt đầu</span>
+  </div>
+
+  <div class="progress-bar" id="progressBar">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <!-- LEGEND -->
+  <div class="legend">
+    <span class="legend-title">MỨC FIBO:</span>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--fibo-236)"></div>0.236</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--fibo-382)"></div>0.382</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--fibo-5)"></div>0.500</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--fibo-618)"></div>0.618</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--fibo-702)"></div>0.702</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--fibo-786)"></div>0.786</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--fibo-86)"></div>0.860</div>
+    <div class="legend-item" style="margin-left:12px"><div class="legend-dot" style="background:rgba(255,211,42,0.5)"></div>Gần mức Fibo (±2%)</div>
+  </div>
+
+  <!-- FILTER -->
+  <div class="filter-bar">
+    <input type="text" class="filter-input" id="filterInput" placeholder="🔍 Tìm coin..." oninput="filterTable()">
+    <span class="count-label" id="countLabel">0 kết quả</span>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrapper">
+    <table id="mainTable">
+      <thead>
+        <tr>
+          <th onclick="sortBy('name')">Coin</th>
+          <th onclick="sortBy('high')">Đỉnh (H)</th>
+          <th onclick="sortBy('highDate')">Ngày Đỉnh</th>
+          <th onclick="sortBy('low')">Đáy (L)</th>
+          <th onclick="sortBy('lowDate')">Ngày Đáy</th>
+          <th onclick="sortBy('amplitude')">Biên Độ</th>
+          <th onclick="sortBy('price')">Giá Hiện Tại</th>
+          <th onclick="sortBy('pctFromLow')">% Từ Đáy</th>
+          <th onclick="sortBy('pctFromHigh')">% Từ Đỉnh</th>
+          <th onclick="sortBy('f236')" style="color:var(--fibo-236)">0.236</th>
+          <th onclick="sortBy('f382')" style="color:var(--fibo-382)">0.382</th>
+          <th onclick="sortBy('f5')"   style="color:var(--fibo-5)">0.500</th>
+          <th onclick="sortBy('f618')" style="color:var(--fibo-618)">0.618</th>
+          <th onclick="sortBy('f702')" style="color:var(--fibo-702)">0.702</th>
+          <th onclick="sortBy('f786')" style="color:var(--fibo-786)">0.786</th>
+          <th onclick="sortBy('f86')"  style="color:var(--fibo-86)">0.860</th>
+          <th>TradingView</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr>
+          <td colspan="17">
+            <div class="empty-state">
+              <div class="big">📊</div>
+              <h3>Chưa có dữ liệu</h3>
+              <p>Chọn danh sách coin và nhấn ⚡ SCAN FIBO</p>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+// ====================== CONSTANTS ======================
+const BINANCE_API = 'https://api.binance.com/api/v3';
+const FIBO_LEVELS = [0.236, 0.382, 0.5, 0.618, 0.702, 0.786, 0.86];
+const FIBO_KEYS   = ['f236','f382','f5','f618','f702','f786','f86'];
+const FIBO_CLASS  = {f236:'fibo-236',f382:'fibo-382',f5:'fibo-5',f618:'fibo-618',f702:'fibo-702',f786:'fibo-786',f86:'fibo-86'};
+
+let currentMode   = 'UP';
+let currentPreset = 'top100';
+let allData       = [];
+let sortCol       = null, sortDir = 1;
+let allSpotSymbols = null;
+
+// ====================== TOP 100 ======================
+const TOP100 = [
+  'BTCUSDT','ETHUSDT','BNBUSDT','SOLUSDT','XRPUSDT','ADAUSDT','DOGEUSDT','AVAXUSDT',
+  'DOTUSDT','MATICUSDT','LTCUSDT','LINKUSDT','UNIUSDT','ATOMUSDT','ETCUSDT','XLMUSDT',
+  'VETUSDT','TRXUSDT','FILUSDT','NEARUSDT','ALGOUSDT','SANDUSDT','MANAUSDT','FTMUSDT',
+  'AXSUSDT','APEUSDT','GALAUSDT','CHZUSDT','ENJUSDT','ZILUSDT','AAVEUSDT','MKRUSDT',
+  'COMPUSDT','SUSHIUSDT','CRVUSDT','YFIUSDT','SNXUSDT','1INCHUSDT','BALUSDT','RUNEUSDT',
+  'ICPUSDT','THETAUSDT','XTZUSDT','HBARUSDT','WAVESUSDT','ZECUSDT','QTUMUSDT',
+  'ONTUSDT','ICXUSDT','IOSTUSDT','BATUSDT','ZRXUSDT','STORJUSDT','BANDUSDT','KNCUSDT',
+  'LRCUSDT','RLCUSDT','SCUSDT','IOTAUSDT','NEOUSDT','DASHUSDT','XMRUSDT','EOSUSDT',
+  'BCHUSDT','OMGUSDT','LUNAUSDT','KSMUSDT','FLOWUSDT','GRTUSDT','ANKRUSDT','AUDIOUSDT',
+  'COTIUSDT','ROSEUSDT','CELOUSDT','SKLUSDT','SLPUSDT','HIGHUSDT','BLURUSDT','ARBUSDT',
+  'OPUSDT','INJUSDT','SUIUSDT','APTUSDT','STXUSDT','CFXUSDT','MINAUSDT','FETUSDT',
+  'AGIXUSDT','OCEANUSDT','MASKUSDT','GMTUSDT','APEUSDT','LDOUSDT','STGUSDT','WOOUSDT',
+  'JASMYUSDT','GALUSDT','HOOKUSDT','MAGICUSDT'
+];
+
+// ====================== INIT ======================
+function init() {
+  const today = new Date();
+  const ago90 = new Date(today); ago90.setDate(ago90.getDate() - 90);
+  dpValues.from = ago90;
+  dpValues.to   = today;
+  dpRenderAll();
+  loadPreset('top100');
+}
+
+// ====================== PRESET ======================
+async function loadPreset(key) {
+  currentPreset = key;
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  const el = document.getElementById('preset-' + key);
+  if (el) el.classList.add('active');
+
+  const ta = document.getElementById('coinList');
+
+  if (key === 'top100') {
+    ta.value    = TOP100.join(', ');
+    ta.readOnly = true;
+    document.getElementById('coinMeta').textContent = `${TOP100.length} coins — Top 100 vốn hóa Binance Spot`;
+
+  } else if (key === 'all') {
+    ta.value    = 'Đang tải danh sách toàn bộ USDT Spot từ Binance…';
+    ta.readOnly = true;
+    document.getElementById('coinMeta').textContent = 'Đang kết nối Binance API…';
+    try {
+      if (!allSpotSymbols) {
+        const res  = await fetch(`${BINANCE_API}/exchangeInfo`);
+        const data = await res.json();
+        allSpotSymbols = data.symbols
+          .filter(s => s.quoteAsset === 'USDT' && s.status === 'TRADING' && s.isSpotTradingAllowed)
+          .map(s => s.symbol);
+      }
+      ta.value = allSpotSymbols.join(', ');
+      document.getElementById('coinMeta').textContent = `${allSpotSymbols.length} coins — Toàn bộ USDT Spot đang giao dịch trên Binance`;
+    } catch (e) {
+      ta.value = '';
+      document.getElementById('coinMeta').textContent = 'Lỗi tải danh sách: ' + e.message;
+    }
+
+  } else if (key === 'custom') {
+    ta.value       = '';
+    ta.readOnly    = false;
+    ta.placeholder = 'Nhập coin cần quét, mỗi dòng hoặc cách nhau bởi dấu phẩy:\nBTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT...';
+    document.getElementById('coinMeta').textContent = 'Nhập tay — mỗi symbol phải có hậu tố USDT (VD: BTCUSDT)';
+  }
+}
+
+// ====================== LOOKBACK ======================
+function onLookbackChange() {
+  const val = document.getElementById('lookbackDays').value;
+  document.getElementById('dateRangeGroup').style.display = val === 'custom' ? 'flex' : 'none';
+}
+
+function getLookback() {
+  const val = document.getElementById('lookbackDays').value;
+  if (val !== 'custom') return { mode: 'limit', limit: parseInt(val) };
+  return {
+    mode: 'range',
+    from: dpValues.from ? dpValues.from.getTime() : null,
+    to:   dpValues.to   ? dpValues.to.getTime() + 86400000 : null
+  };
+}
+
+// ====================== MODE ======================
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('btnUp').className   = 'mode-btn' + (mode === 'UP'   ? ' active-up'   : '');
+  document.getElementById('btnDown').className = 'mode-btn' + (mode === 'DOWN' ? ' active-down' : '');
+}
+
+// ====================== STATUS / PROGRESS ======================
+function setStatus(type, msg) {
+  document.getElementById('statusDot').className = 'status-dot ' + type;
+  document.getElementById('statusText').textContent = msg;
+}
+
+function setProgress(p) {
+  const bar = document.getElementById('progressBar');
+  if (p >= 100) { bar.style.display = 'none'; return; }
+  bar.style.display = 'block';
+  document.getElementById('progressFill').style.width = p + '%';
+}
+
+// ====================== GET COINS ======================
+function getCoins() {
+  const raw = document.getElementById('coinList').value;
+  return raw.split(/[\n,]+/)
+    .map(s => s.trim().toUpperCase())
+    .filter(s => s.length > 0 && !s.includes(' '));
+}
+
+// ====================== BINANCE FETCH ======================
+async function fetchKlines(symbol, lookback) {
+  let url;
+  if (lookback.mode === 'limit') {
+    url = `${BINANCE_API}/klines?symbol=${symbol}&interval=1d&limit=${lookback.limit}`;
+  } else {
+    const p = [`symbol=${symbol}`, `interval=1d`, `limit=1000`];
+    if (lookback.from) p.push(`startTime=${lookback.from}`);
+    if (lookback.to)   p.push(`endTime=${lookback.to}`);
+    url = `${BINANCE_API}/klines?${p.join('&')}`;
+  }
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  return data.map(k => ({
+    time:  new Date(k[0]),
+    high:  parseFloat(k[2]),
+    low:   parseFloat(k[3]),
+    close: parseFloat(k[4])
+  }));
+}
+
+async function fetchCurrentPrice(symbol) {
+  const res  = await fetch(`${BINANCE_API}/ticker/price?symbol=${symbol}`);
+  const data = await res.json();
+  return parseFloat(data.price);
+}
+
+// ====================== FIBO CALC ======================
+function calcFibo(H, L, mode) {
+  const amp = H - L;
+  const out = {};
+  FIBO_LEVELS.forEach((f, i) => {
+    out[FIBO_KEYS[i]] = mode === 'UP' ? H - amp * f : L + amp * f;
+  });
+  return out;
+}
+
+function findHighLow(klines) {
+  let highVal = -Infinity, lowVal = Infinity, highDate = null, lowDate = null;
+  klines.forEach(k => {
+    if (k.high > highVal) { highVal = k.high; highDate = k.time; }
+    if (k.low  < lowVal)  { lowVal  = k.low;  lowDate  = k.time; }
+  });
+  return { highVal, lowVal, highDate, lowDate };
+}
+
+function isNearFibo(price, val) {
+  return val > 0 && Math.abs(price - val) / val < 0.02;
+}
+
+// ====================== SCAN ======================
+async function startScan() {
+  const coins    = getCoins().filter(Boolean);
+  const lookback = getLookback();
+  const btn      = document.getElementById('loadBtn');
+
+  if (!coins.length) { alert('Không có coin nào để quét!'); return; }
+
+  btn.disabled    = true;
+  btn.textContent = '⏳ ĐANG QUÉT…';
+  allData         = [];
+  setStatus('loading', `Bắt đầu quét ${coins.length} coins…`);
+  setProgress(0);
+  renderTable([]);
+
+  let done = 0, errCount = 0;
+
+  for (const symbol of coins) {
+    try {
+      const [klines, price] = await Promise.all([
+        fetchKlines(symbol, lookback),
+        fetchCurrentPrice(symbol)
+      ]);
+
+      if (!klines.length) throw new Error('Không có dữ liệu');
+
+      const { highVal, lowVal, highDate, lowDate } = findHighLow(klines);
+      const fibo        = calcFibo(highVal, lowVal, currentMode);
+      const amp         = highVal - lowVal;
+      const pctFromLow  = (price - lowVal)  / lowVal  * 100;
+      const pctFromHigh = (price - highVal) / highVal * 100;
+      const nearLevels  = FIBO_KEYS.filter(k => isNearFibo(price, fibo[k]));
+
+      allData.push({
+        name: symbol.replace('USDT',''),
+        symbol, high: highVal, low: lowVal, amplitude: amp,
+        price, pctFromLow, pctFromHigh,
+        highDate, lowDate, mode: currentMode, nearLevels,
+        ...fibo
+      });
+
+      done++;
+      setStatus('loading', `Đang quét… ${symbol} (${done}/${coins.length})`);
+      setProgress(done / coins.length * 100);
+      renderTable(allData);
+      updateStats(allData, errCount);
+
+    } catch (e) {
+      errCount++;
+      console.warn(`${symbol}: ${e.message}`);
+    }
+
+    await new Promise(r => setTimeout(r, 80));
+  }
+
+  setProgress(100);
+  setStatus('ok', `✅ Hoàn tất — ${done} coins · ${errCount} lỗi · Chế độ: ${currentMode === 'UP' ? 'Fibo Up ▲' : 'Fibo Down ▼'}`);
+  btn.disabled    = false;
+  btn.textContent = '⚡ SCAN FIBO';
+  updateStats(allData, errCount);
+}
+
+// ====================== STATS ======================
+function updateStats(data, errCount = 0) {
+  document.getElementById('statTotal').textContent   = data.length;
+  document.getElementById('statNear618').textContent = data.filter(r => r.nearLevels?.includes('f618')).length;
+  document.getElementById('statUp').textContent      = data.filter(r => r.pctFromLow > 0).length;
+  document.getElementById('statDown').textContent    = data.filter(r => r.pctFromHigh < 0).length;
+  document.getElementById('statErr').textContent     = errCount;
+}
+
+// ====================== FORMAT ======================
+function fmt(n) {
+  if (n == null || isNaN(n)) return '—';
+  if (Math.abs(n) >= 10000) return n.toLocaleString('en-US', {maximumFractionDigits: 2});
+  if (Math.abs(n) >= 1000)  return n.toLocaleString('en-US', {maximumFractionDigits: 3});
+  if (Math.abs(n) >= 1)     return n.toFixed(4);
+  return n.toPrecision(5);
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  return `${dd}/${mm}/${d.getFullYear()}`;
+}
+
+// ====================== RENDER FIBO CELL ======================
+function renderFiboCell(row, key) {
+  const val  = row[key];
+  const diff = ((row.price - val) / val * 100);
+  const near = row.nearLevels?.includes(key);
+  const sign = diff >= 0 ? '+' : '';
+  const clr  = diff >= 0 ? 'var(--green)' : 'var(--red)';
+  return `<td class="${FIBO_CLASS[key]} ${near ? 'near-level' : ''}">
+    <div class="fibo-val">${fmt(val)}</div>
+    <div class="fibo-pct" style="color:${clr}">${sign}${diff.toFixed(1)}%</div>
+  </td>`;
+}
+
+// ====================== RENDER TABLE ======================
+function renderTable(data) {
+  const filter = document.getElementById('filterInput').value.toLowerCase();
+  let rows = data.filter(r =>
+    r.name.toLowerCase().includes(filter) || r.symbol.toLowerCase().includes(filter)
+  );
+
+  if (sortCol) {
+    rows = [...rows].sort((a, b) => {
+      let av = a[sortCol], bv = b[sortCol];
+      if (av instanceof Date) av = av.getTime();
+      if (bv instanceof Date) bv = bv.getTime();
+      if (typeof av === 'string') return sortDir * av.localeCompare(bv);
+      return sortDir * ((av || 0) - (bv || 0));
+    });
+  }
+
+  document.getElementById('countLabel').textContent = `${rows.length} kết quả`;
+
+  if (!rows.length) {
+    document.getElementById('tableBody').innerHTML =
+      `<tr><td colspan="17"><div class="empty-state"><div class="big">📭</div><h3>Không có dữ liệu</h3><p>Thử thay đổi danh sách coin hoặc bộ lọc</p></div></td></tr>`;
+    return;
+  }
+
+  document.getElementById('tableBody').innerHTML = rows.map(r => {
+    const pLow  = r.pctFromLow.toFixed(2);
+    const pHigh = r.pctFromHigh.toFixed(2);
+    const tvLink   = `https://www.tradingview.com/chart/?symbol=BINANCE:${r.symbol}&interval=D`;
+    const modeLbl  = r.mode === 'UP' ? '▲ Fibo Up' : '▼ Fibo Down';
+    const modeClr  = r.mode === 'UP' ? 'var(--green)' : 'var(--red)';
+    const initials = r.name.substring(0,3);
+
+    return `<tr>
+      <td>
+        <div class="coin-cell">
+          <div class="coin-icon">${initials}</div>
+          <div>
+            <div class="coin-name">${r.name}</div>
+            <div class="coin-sub" style="color:${modeClr}">${modeLbl}</div>
+          </div>
+        </div>
+      </td>
+      <td class="high-val">${fmt(r.high)}</td>
+      <td class="date-cell">${fmtDate(r.highDate)}</td>
+      <td class="low-val">${fmt(r.low)}</td>
+      <td class="date-cell">${fmtDate(r.lowDate)}</td>
+      <td>${fmt(r.amplitude)}</td>
+      <td class="price-val">${fmt(r.price)}</td>
+      <td><span class="pct-badge ${pLow >= 0 ? 'up':'down'}">${pLow >= 0?'+':''}${pLow}%</span></td>
+      <td><span class="pct-badge ${pHigh >= 0 ? 'up':'down'}">${pHigh >= 0?'+':''}${pHigh}%</span></td>
+      ${FIBO_KEYS.map(k => renderFiboCell(r, k)).join('')}
+      <td><a href="${tvLink}" target="_blank" class="tv-link">📈 Chart</a></td>
+    </tr>`;
+  }).join('');
+}
+
+// ====================== SORT & FILTER ======================
+function sortBy(col) {
+  if (sortCol === col) sortDir *= -1; else { sortCol = col; sortDir = 1; }
+  document.querySelectorAll('thead th').forEach(th => th.classList.remove('sort-asc','sort-desc'));
+  const colMap = ['name','high','highDate','low','lowDate','amplitude','price','pctFromLow','pctFromHigh',
+                  'f236','f382','f5','f618','f702','f786','f86'];
+  const idx = colMap.indexOf(col);
+  if (idx >= 0) document.querySelectorAll('thead th')[idx].classList.add(sortDir === 1 ? 'sort-asc' : 'sort-desc');
+  renderTable(allData);
+}
+
+function filterTable() { renderTable(allData); }
+
+// ====================== EXPORT CSV ======================
+function exportCSV() {
+  if (!allData.length) { alert('Chưa có dữ liệu!'); return; }
+
+  const headers = [
+    'Symbol','Chế Độ','Đỉnh (H)','Ngày Đỉnh','Đáy (L)','Ngày Đáy',
+    'Biên Độ','Giá Hiện Tại','% Từ Đáy','% Từ Đỉnh',
+    'Fibo 0.236','Fibo 0.382','Fibo 0.500','Fibo 0.618','Fibo 0.702','Fibo 0.786','Fibo 0.860',
+    'TradingView Link'
+  ];
+
+  const rows = allData.map(r => {
+    const tvLink = `https://www.tradingview.com/chart/?symbol=BINANCE:${r.symbol}&interval=D`;
+    return [
+      r.symbol,
+      r.mode === 'UP' ? 'Fibo Up' : 'Fibo Down',
+      r.high?.toFixed(6),        fmtDate(r.highDate),
+      r.low?.toFixed(6),         fmtDate(r.lowDate),
+      r.amplitude?.toFixed(6),
+      r.price?.toFixed(6),
+      r.pctFromLow?.toFixed(2) + '%',
+      r.pctFromHigh?.toFixed(2) + '%',
+      r.f236?.toFixed(6), r.f382?.toFixed(6), r.f5?.toFixed(6),
+      r.f618?.toFixed(6), r.f702?.toFixed(6), r.f786?.toFixed(6), r.f86?.toFixed(6),
+      tvLink
+    ];
+  });
+
+  const bom = '\uFEFF';
+  const csv = [headers, ...rows]
+    .map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(','))
+    .join('\n');
+
+  const blob = new Blob([bom + csv], {type:'text/csv;charset=utf-8;'});
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = `fibo_scan_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+// ====================== CUSTOM DATE PICKER ======================
+const dpValues = { from: null, to: null };
+let dpOpen = null; // 'from' | 'to'
+const MONTHS_VI = ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6',
+                   'Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12'];
+const DAYS_VI   = ['CN','T2','T3','T4','T5','T6','T7'];
+
+// Current view month for each picker
+const dpView = { from: new Date(), to: new Date() };
+
+function dpToggle(which) {
+  if (dpOpen === which) { dpClose(); return; }
+  dpClose();
+  dpOpen = which;
+  // Sync view to current selected value
+  if (dpValues[which]) {
+    dpView[which] = new Date(dpValues[which].getFullYear(), dpValues[which].getMonth(), 1);
+  }
+  dpRenderCal(which);
+  document.getElementById('dp' + capitalize(which) + 'Input').classList.add('open');
+  document.getElementById('dp' + capitalize(which) + 'Cal').classList.add('visible');
+}
+
+function dpClose() {
+  if (!dpOpen) return;
+  document.getElementById('dp' + capitalize(dpOpen) + 'Input').classList.remove('open');
+  document.getElementById('dp' + capitalize(dpOpen) + 'Cal').classList.remove('visible');
+  dpOpen = null;
+}
+
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+function dpRenderCal(which) {
+  const cal  = document.getElementById('dp' + capitalize(which) + 'Cal');
+  const view = dpView[which];
+  const yr   = view.getFullYear();
+  const mo   = view.getMonth();
+
+  // Build year options (2018 - current+1)
+  const curYr  = new Date().getFullYear();
+  let yearOpts = '';
+  for (let y = 2018; y <= curYr + 1; y++) {
+    yearOpts += `<option value="${y}" ${y === yr ? 'selected' : ''}>${y}</option>`;
+  }
+
+  // Build month options
+  let moOpts = '';
+  MONTHS_VI.forEach((m, i) => {
+    moOpts += `<option value="${i}" ${i === mo ? 'selected' : ''}>${m}</option>`;
+  });
+
+  // Day names header
+  const dayNamesHtml = DAYS_VI.map(d => `<div class="dp-dayname">${d}</div>`).join('');
+
+  // First day of month, last day
+  const firstDay = new Date(yr, mo, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(yr, mo + 1, 0).getDate();
+
+  const today    = new Date();
+  const sel      = dpValues[which];
+  const selFrom  = dpValues.from;
+  const selTo    = dpValues.to;
+
+  let daysHtml = '';
+
+  // Empty cells
+  for (let i = 0; i < firstDay; i++) {
+    daysHtml += `<div class="dp-day dp-day-empty"></div>`;
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const thisDate = new Date(yr, mo, d);
+    let cls = 'dp-day';
+    if (thisDate.getDay() === 0) cls += ' dp-day-sunday';
+    // today highlight
+    if (thisDate.toDateString() === today.toDateString()) cls += ' dp-day-today';
+    // selected
+    if (sel && thisDate.toDateString() === sel.toDateString()) cls += ' dp-day-selected';
+    // in range highlight
+    else if (selFrom && selTo && thisDate > selFrom && thisDate < selTo) cls += ' dp-day-in-range';
+
+    daysHtml += `<div class="${cls}" onclick="dpSelectDay('${which}',${yr},${mo},${d})">${d}</div>`;
+  }
+
+  // Quick picks (only on "from" picker)
+  let quickHtml = '';
+  if (which === 'from') {
+    quickHtml = `<div class="dp-quick">
+      <button class="dp-quick-btn" onclick="dpQuick(60)">60 ngày</button>
+      <button class="dp-quick-btn" onclick="dpQuick(90)">90 ngày</button>
+      <button class="dp-quick-btn" onclick="dpQuick(180)">180 ngày</button>
+      <button class="dp-quick-btn" onclick="dpQuick(365)">1 năm</button>
+    </div>`;
+  }
+
+  cal.innerHTML = `
+    <div class="dp-nav">
+      <button class="dp-nav-btn" onclick="dpNavMonth('${which}',-1)">‹</button>
+      <div class="dp-title">
+        <select class="dp-month-sel" onchange="dpChangeMonth('${which}',this.value)">${moOpts}</select>
+        <select class="dp-year-sel"  onchange="dpChangeYear('${which}',this.value)">${yearOpts}</select>
+      </div>
+      <button class="dp-nav-btn" onclick="dpNavMonth('${which}',1)">›</button>
+    </div>
+    <div class="dp-daynames">${dayNamesHtml}</div>
+    <div class="dp-days">${daysHtml}</div>
+    ${quickHtml}
+  `;
+}
+
+function dpNavMonth(which, delta) {
+  dpView[which] = new Date(dpView[which].getFullYear(), dpView[which].getMonth() + delta, 1);
+  dpRenderCal(which);
+}
+
+function dpChangeMonth(which, mo) {
+  dpView[which] = new Date(dpView[which].getFullYear(), parseInt(mo), 1);
+  dpRenderCal(which);
+}
+
+function dpChangeYear(which, yr) {
+  dpView[which] = new Date(parseInt(yr), dpView[which].getMonth(), 1);
+  dpRenderCal(which);
+}
+
+function dpSelectDay(which, yr, mo, d) {
+  dpValues[which] = new Date(yr, mo, d);
+  // Auto: if selecting "from" and it's after "to", clear "to"
+  if (which === 'from' && dpValues.to && dpValues.from > dpValues.to) dpValues.to = null;
+  // Auto: if selecting "to" and it's before "from", clear "from"
+  if (which === 'to'   && dpValues.from && dpValues.to < dpValues.from) dpValues.from = null;
+  dpRenderAll();
+  dpClose();
+  // After picking "from", auto-open "to" picker
+  if (which === 'from') setTimeout(() => dpToggle('to'), 120);
+}
+
+function dpQuick(days) {
+  const to   = new Date();
+  const from = new Date(); from.setDate(from.getDate() - days);
+  dpValues.from = from;
+  dpValues.to   = to;
+  dpRenderAll();
+  dpClose();
+}
+
+function dpRenderAll() {
+  const fmt = d => d ? `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}` : null;
+  document.getElementById('dpFromDisplay').textContent = fmt(dpValues.from) || 'Từ ngày';
+  document.getElementById('dpToDisplay').textContent   = fmt(dpValues.to)   || 'Đến ngày';
+}
+
+// Close calendar on outside click
+document.addEventListener('click', function(e) {
+  if (dpOpen && !document.getElementById('dp' + capitalize(dpOpen) + 'Wrap').contains(e.target)) {
+    dpClose();
+  }
+});
+
+// ====================== RUN ======================
+init();
+</script>
+</body>
+</html>
