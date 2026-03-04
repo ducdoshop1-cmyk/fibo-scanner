@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FIBO SCANNER — Binance Spot 1D</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <style>
   :root {
     --bg: #080b12;
@@ -540,6 +541,23 @@
   thead th.sort-asc::after  { content: ' ↑'; color: var(--accent); }
   thead th.sort-desc::after { content: ' ↓'; color: var(--accent); }
 
+  /* Fibo column — dual sort */
+  .fibo-th { padding: 8px 6px !important; }
+
+  .fibo-th .fibo-sort-pct {
+    cursor: pointer;
+    font-size: 11px;
+    opacity: 0.4;
+    margin-left: 3px;
+    padding: 3px 4px;
+    border-radius: 4px;
+    transition: all 0.15s;
+    display: inline-block;
+    color: var(--muted);
+  }
+  .fibo-th .fibo-sort-pct:hover { opacity: 1; background: rgba(255,255,255,0.08); color: var(--accent); }
+  .fibo-th .fibo-sort-pct.active-sort { opacity: 1; color: var(--accent); }
+
   tbody tr { border-bottom: 1px solid rgba(30,45,66,0.5); transition: background 0.12s; }
   tbody tr:hover { background: rgba(0,212,255,0.033); }
 
@@ -591,7 +609,7 @@
   .fibo-786 .fibo-val { color: var(--fibo-786); }
   .fibo-86  .fibo-val { color: var(--fibo-86); }
 
-  .near-level { background: rgba(255,211,42,0.07); }
+  .touched-level { background: rgba(0,229,160,0.09); }
 
   .high-val  { color: var(--red);   font-weight: 600; }
   .low-val   { color: var(--green); font-weight: 600; }
@@ -692,7 +710,7 @@
 
     <div class="ctrl-actions">
       <button class="btn btn-primary" id="loadBtn" onclick="startScan()">⚡ SCAN FIBO</button>
-      <button class="btn btn-secondary" onclick="exportCSV()">↓ Tải xuống</button>
+      <button class="btn btn-secondary" onclick="exportExcel()">↓ Tải xuống (.xlsx)</button>
     </div>
 
   </div>
@@ -702,7 +720,7 @@
     <div class="coin-section-header">
       <h3>Danh sách coin cần quét</h3>
       <div class="coin-preset-btns">
-        <button class="preset-btn active" id="preset-top100" onclick="loadPreset('top100')">Top 100</button>
+        <button class="preset-btn active" id="preset-top100" onclick="loadPreset('top100')">Top 100 (CoinGecko)</button>
         <button class="preset-btn"        id="preset-all"    onclick="loadPreset('all')">Toàn bộ SPOT Binance</button>
         <button class="preset-btn"        id="preset-custom" onclick="loadPreset('custom')">Tự nhập</button>
       </div>
@@ -716,10 +734,6 @@
     <div class="stat-card">
       <span class="s-label">Đã quét</span>
       <span class="s-value accent" id="statTotal">0</span>
-    </div>
-    <div class="stat-card">
-      <span class="s-label">Gần Fibo 0.618</span>
-      <span class="s-value yellow" id="statNear618">0</span>
     </div>
     <div class="stat-card">
       <span class="s-label">Trên đáy</span>
@@ -755,7 +769,7 @@
     <div class="legend-item"><div class="legend-dot" style="background:var(--fibo-702)"></div>0.702</div>
     <div class="legend-item"><div class="legend-dot" style="background:var(--fibo-786)"></div>0.786</div>
     <div class="legend-item"><div class="legend-dot" style="background:var(--fibo-86)"></div>0.860</div>
-    <div class="legend-item" style="margin-left:12px"><div class="legend-dot" style="background:rgba(255,211,42,0.5)"></div>Gần mức Fibo (±2%)</div>
+    <div class="legend-item" style="margin-left:12px"><div class="legend-dot" style="background:var(--green)"></div>Giá đã chạm mức Fibo</div>
   </div>
 
   <!-- FILTER -->
@@ -778,13 +792,13 @@
           <th onclick="sortBy('price')">Giá Hiện Tại</th>
           <th onclick="sortBy('pctFromLow')">% Từ Đáy</th>
           <th onclick="sortBy('pctFromHigh')">% Từ Đỉnh</th>
-          <th onclick="sortBy('f236')" style="color:var(--fibo-236)">0.236</th>
-          <th onclick="sortBy('f382')" style="color:var(--fibo-382)">0.382</th>
-          <th onclick="sortBy('f5')"   style="color:var(--fibo-5)">0.500</th>
-          <th onclick="sortBy('f618')" style="color:var(--fibo-618)">0.618</th>
-          <th onclick="sortBy('f702')" style="color:var(--fibo-702)">0.702</th>
-          <th onclick="sortBy('f786')" style="color:var(--fibo-786)">0.786</th>
-          <th onclick="sortBy('f86')"  style="color:var(--fibo-86)">0.860</th>
+          <th class="fibo-th" style="color:var(--fibo-236)">0.236 <span onclick="sortBy('f236pct')" class="fibo-sort-pct" title="Sắp xếp theo %">⇅</span></th>
+          <th class="fibo-th" style="color:var(--fibo-382)">0.382 <span onclick="sortBy('f382pct')" class="fibo-sort-pct" title="Sắp xếp theo %">⇅</span></th>
+          <th class="fibo-th" style="color:var(--fibo-5)"  >0.500 <span onclick="sortBy('f5pct')"   class="fibo-sort-pct" title="Sắp xếp theo %">⇅</span></th>
+          <th class="fibo-th" style="color:var(--fibo-618)">0.618 <span onclick="sortBy('f618pct')" class="fibo-sort-pct" title="Sắp xếp theo %">⇅</span></th>
+          <th class="fibo-th" style="color:var(--fibo-702)">0.702 <span onclick="sortBy('f702pct')" class="fibo-sort-pct" title="Sắp xếp theo %">⇅</span></th>
+          <th class="fibo-th" style="color:var(--fibo-786)">0.786 <span onclick="sortBy('f786pct')" class="fibo-sort-pct" title="Sắp xếp theo %">⇅</span></th>
+          <th class="fibo-th" style="color:var(--fibo-86)" >0.860 <span onclick="sortBy('f86pct')"  class="fibo-sort-pct" title="Sắp xếp theo %">⇅</span></th>
           <th>TradingView</th>
         </tr>
       </thead>
@@ -815,24 +829,90 @@ let currentMode   = 'UP';
 let currentPreset = 'top100';
 let allData       = [];
 let sortCol       = null, sortDir = 1;
-let allSpotSymbols = null;
+let allSpotSymbols = null; // Set — symbol hợp lệ Binance Spot USDT
+let top100Cache   = null;
+let top100CacheTs = 0;
+const TOP100_TTL  = 60 * 60 * 1000; // cache 1 giờ
 
-// ====================== TOP 100 ======================
-const TOP100 = [
-  'BTCUSDT','ETHUSDT','BNBUSDT','SOLUSDT','XRPUSDT','ADAUSDT','DOGEUSDT','AVAXUSDT',
-  'DOTUSDT','MATICUSDT','LTCUSDT','LINKUSDT','UNIUSDT','ATOMUSDT','ETCUSDT','XLMUSDT',
-  'VETUSDT','TRXUSDT','FILUSDT','NEARUSDT','ALGOUSDT','SANDUSDT','MANAUSDT','FTMUSDT',
-  'AXSUSDT','APEUSDT','GALAUSDT','CHZUSDT','ENJUSDT','ZILUSDT','AAVEUSDT','MKRUSDT',
-  'COMPUSDT','SUSHIUSDT','CRVUSDT','YFIUSDT','SNXUSDT','1INCHUSDT','BALUSDT','RUNEUSDT',
-  'ICPUSDT','THETAUSDT','XTZUSDT','HBARUSDT','WAVESUSDT','ZECUSDT','QTUMUSDT',
-  'ONTUSDT','ICXUSDT','IOSTUSDT','BATUSDT','ZRXUSDT','STORJUSDT','BANDUSDT','KNCUSDT',
-  'LRCUSDT','RLCUSDT','SCUSDT','IOTAUSDT','NEOUSDT','DASHUSDT','XMRUSDT','EOSUSDT',
-  'BCHUSDT','OMGUSDT','LUNAUSDT','KSMUSDT','FLOWUSDT','GRTUSDT','ANKRUSDT','AUDIOUSDT',
-  'COTIUSDT','ROSEUSDT','CELOUSDT','SKLUSDT','SLPUSDT','HIGHUSDT','BLURUSDT','ARBUSDT',
-  'OPUSDT','INJUSDT','SUIUSDT','APTUSDT','STXUSDT','CFXUSDT','MINAUSDT','FETUSDT',
-  'AGIXUSDT','OCEANUSDT','MASKUSDT','GMTUSDT','APEUSDT','LDOUSDT','STGUSDT','WOOUSDT',
-  'JASMYUSDT','GALUSDT','HOOKUSDT','MAGICUSDT'
-];
+// Stablecoin bị loại
+const STABLE_BL = new Set([
+  'USDT','USDC','BUSD','DAI','TUSD','USDP','GUSD','FDUSD','PYUSD',
+  'FRAX','LUSD','SUSD','USDD','USTC','USDN','EURS','XAUT','PAXG',
+  'HUSD','CUSD','CEUR','USDB','USDJ','MIM','CRVUSD','ALUSD','DOLA',
+  'USDX','UST','OUSD'
+]);
+
+// Wrapped token & liquid staking bị loại
+const WRAPPED_BL = new Set([
+  'WBTC','WETH','WBNB','WMATIC','WAVAX','WFTM','WONE','WSOL',
+  'STETH','WSTETH','CBETH','RETH','SFRXETH','ANKRETH','BETH',
+  'STMATIC','MATICX','BNBX','SOLVBTC','BTCB','HBTC','TBTC',
+  'WEETH','EZETH','RSETH','PUFETH','SWETH'
+]);
+
+// ====================== FETCH BINANCE SYMBOLS ======================
+async function ensureBinanceSymbols() {
+  if (allSpotSymbols) return;
+  const res  = await fetch(`${BINANCE_API}/exchangeInfo`);
+  const data = await res.json();
+  allSpotSymbols = new Set(
+    data.symbols
+      .filter(s => s.quoteAsset === 'USDT' && s.status === 'TRADING' && s.isSpotTradingAllowed)
+      .map(s => s.symbol)
+  );
+}
+
+// ====================== FETCH TOP 100 FROM COINGECKO ======================
+async function fetchTop100() {
+  // Trả cache nếu còn hạn
+  if (top100Cache && Date.now() - top100CacheTs < TOP100_TTL) return top100Cache;
+
+  // 1. Lấy danh sách Binance Spot hợp lệ trước
+  await ensureBinanceSymbols();
+
+  // 2. Gọi CoinGecko lấy top 250 trang 1 + trang 2 để đủ sau khi lọc stable/wrapped
+  const fetchPage = async (page) => {
+    const url = 'https://api.coingecko.com/api/v3/coins/markets'
+      + `?vs_currency=usd&order=market_cap_desc&per_page=250&page=${page}&sparkline=false`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('CoinGecko HTTP ' + res.status);
+    return res.json();
+  };
+
+  let data = await fetchPage(1);
+  // Nếu sau lọc chưa đủ 100, lấy thêm trang 2
+  // (fetch song song trang 2 trước để tránh delay)
+  const data2Promise = fetchPage(2);
+
+  // 3. Lọc: bỏ stable, bỏ wrapped/liquid staking, chỉ giữ coin có trên Binance Spot USDT
+  //    Giữ nguyên thứ tự vốn hóa từ CoinGecko (index = rank)
+  const result = [];
+  const processCoins = (coins) => {
+    for (const coin of coins) {
+      if (result.length >= 100) break;
+      const sym     = coin.symbol.toUpperCase();
+      const symUSDT = sym + 'USDT';
+      if (STABLE_BL.has(sym))           continue; // stablecoin
+      if (WRAPPED_BL.has(sym))          continue; // wrapped / liquid staking
+      if (!allSpotSymbols.has(symUSDT)) continue; // không có trên Binance Spot
+      result.push(symUSDT);
+    }
+  };
+
+  processCoins(data);
+  // Nếu chưa đủ 100, dùng trang 2
+  if (result.length < 100) {
+    const data2 = await data2Promise;
+    processCoins(data2);
+  } else {
+    // Huỷ promise trang 2 (không cần dùng)
+    data2Promise.catch(() => {});
+  }
+
+  top100Cache   = result;
+  top100CacheTs = Date.now();
+  return result;
+}
 
 // ====================== INIT ======================
 function init() {
@@ -851,37 +931,41 @@ async function loadPreset(key) {
   const el = document.getElementById('preset-' + key);
   if (el) el.classList.add('active');
 
-  const ta = document.getElementById('coinList');
+  const ta   = document.getElementById('coinList');
+  const meta = document.getElementById('coinMeta');
 
   if (key === 'top100') {
-    ta.value    = TOP100.join(', ');
+    ta.value    = '⏳ Đang tải top 100 từ CoinGecko…';
     ta.readOnly = true;
-    document.getElementById('coinMeta').textContent = `${TOP100.length} coins — Top 100 vốn hóa Binance Spot`;
-
-  } else if (key === 'all') {
-    ta.value    = 'Đang tải danh sách toàn bộ USDT Spot từ Binance…';
-    ta.readOnly = true;
-    document.getElementById('coinMeta').textContent = 'Đang kết nối Binance API…';
+    meta.textContent = 'Đang lấy danh sách theo vốn hóa thực tế…';
     try {
-      if (!allSpotSymbols) {
-        const res  = await fetch(`${BINANCE_API}/exchangeInfo`);
-        const data = await res.json();
-        allSpotSymbols = data.symbols
-          .filter(s => s.quoteAsset === 'USDT' && s.status === 'TRADING' && s.isSpotTradingAllowed)
-          .map(s => s.symbol);
-      }
-      ta.value = allSpotSymbols.join(', ');
-      document.getElementById('coinMeta').textContent = `${allSpotSymbols.length} coins — Toàn bộ USDT Spot đang giao dịch trên Binance`;
+      const list = await fetchTop100();
+      ta.value = list.join(', ');
+      meta.textContent = list.length + ' coins — Top ' + list.length + ' vốn hóa lớn nhất có trên Binance Spot · Bỏ stablecoin & wrapped token · Thứ tự: vốn hóa lớn → nhỏ';
     } catch (e) {
       ta.value = '';
-      document.getElementById('coinMeta').textContent = 'Lỗi tải danh sách: ' + e.message;
+      meta.textContent = '❌ Lỗi CoinGecko: ' + e.message + ' — Thử lại hoặc dùng Tự nhập';
+    }
+
+  } else if (key === 'all') {
+    ta.value    = '⏳ Đang tải toàn bộ USDT Spot từ Binance…';
+    ta.readOnly = true;
+    meta.textContent = 'Đang kết nối Binance API…';
+    try {
+      await ensureBinanceSymbols();
+      const list = [...allSpotSymbols];
+      ta.value = list.join(', ');
+      meta.textContent = list.length + ' coins — Toàn bộ USDT Spot đang giao dịch trên Binance';
+    } catch (e) {
+      ta.value = '';
+      meta.textContent = '❌ Lỗi Binance: ' + e.message;
     }
 
   } else if (key === 'custom') {
     ta.value       = '';
     ta.readOnly    = false;
     ta.placeholder = 'Nhập coin cần quét, mỗi dòng hoặc cách nhau bởi dấu phẩy:\nBTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT...';
-    document.getElementById('coinMeta').textContent = 'Nhập tay — mỗi symbol phải có hậu tố USDT (VD: BTCUSDT)';
+    meta.textContent = 'Nhập tay — mỗi symbol phải có hậu tố USDT (VD: BTCUSDT)';
   }
 }
 
@@ -976,8 +1060,32 @@ function findHighLow(klines) {
   return { highVal, lowVal, highDate, lowDate };
 }
 
-function isNearFibo(price, val) {
-  return val > 0 && Math.abs(price - val) / val < 0.02;
+function isTouched(klines, fiboVal, mode) {
+  if (!klines.length || !fiboVal) return false;
+
+  if (mode === 'DOWN') {
+    // Fibo Down: vẽ từ đỉnh xuống đáy. Các mức fibo = vùng hồi lên để short.
+    // Tìm nến có Low thấp nhất (đáy), chỉ xét nến SAU đáy đó.
+    // Nếu High của nến sau đáy >= fiboVal => giá đã hồi lên chạm mức đó.
+    let lowIdx = 0;
+    for (let i = 1; i < klines.length; i++) {
+      if (klines[i].low < klines[lowIdx].low) lowIdx = i;
+    }
+    return klines.slice(lowIdx).some(k => k.high >= fiboVal);
+  }
+
+  if (mode === 'UP') {
+    // Fibo Up: vẽ từ đáy lên đỉnh. Các mức fibo = vùng hồi xuống để mua.
+    // Tìm nến có High cao nhất (đỉnh), chỉ xét nến SAU đỉnh đó.
+    // Nếu Low của nến sau đỉnh <= fiboVal => giá đã hồi xuống chạm mức đó.
+    let highIdx = 0;
+    for (let i = 1; i < klines.length; i++) {
+      if (klines[i].high > klines[highIdx].high) highIdx = i;
+    }
+    return klines.slice(highIdx).some(k => k.low <= fiboVal);
+  }
+
+  return false;
 }
 
 // ====================== SCAN ======================
@@ -1011,13 +1119,13 @@ async function startScan() {
       const amp         = highVal - lowVal;
       const pctFromLow  = (price - lowVal)  / lowVal  * 100;
       const pctFromHigh = (price - highVal) / highVal * 100;
-      const nearLevels  = FIBO_KEYS.filter(k => isNearFibo(price, fibo[k]));
+      const touchedLevels = FIBO_KEYS.filter(k => isTouched(klines, fibo[k], currentMode));
 
       allData.push({
         name: symbol.replace('USDT',''),
         symbol, high: highVal, low: lowVal, amplitude: amp,
         price, pctFromLow, pctFromHigh,
-        highDate, lowDate, mode: currentMode, nearLevels,
+        highDate, lowDate, mode: currentMode, touchedLevels,
         ...fibo
       });
 
@@ -1045,7 +1153,6 @@ async function startScan() {
 // ====================== STATS ======================
 function updateStats(data, errCount = 0) {
   document.getElementById('statTotal').textContent   = data.length;
-  document.getElementById('statNear618').textContent = data.filter(r => r.nearLevels?.includes('f618')).length;
   document.getElementById('statUp').textContent      = data.filter(r => r.pctFromLow > 0).length;
   document.getElementById('statDown').textContent    = data.filter(r => r.pctFromHigh < 0).length;
   document.getElementById('statErr').textContent     = errCount;
@@ -1069,13 +1176,13 @@ function fmtDate(d) {
 
 // ====================== RENDER FIBO CELL ======================
 function renderFiboCell(row, key) {
-  const val  = row[key];
-  const diff = ((row.price - val) / val * 100);
-  const near = row.nearLevels?.includes(key);
-  const sign = diff >= 0 ? '+' : '';
-  const clr  = diff >= 0 ? 'var(--green)' : 'var(--red)';
-  return `<td class="${FIBO_CLASS[key]} ${near ? 'near-level' : ''}">
-    <div class="fibo-val">${fmt(val)}</div>
+  const val     = row[key];
+  const diff    = ((row.price - val) / val * 100);
+  const touched = row.touchedLevels?.includes(key);
+  const sign    = diff >= 0 ? '+' : '';
+  const clr     = diff >= 0 ? 'var(--green)' : 'var(--red)';
+  return `<td class="${FIBO_CLASS[key]} ${touched ? 'touched-level' : ''}">
+    <div class="fibo-val" style="${touched ? 'color:var(--green);font-weight:600' : ''}">${fmt(val)}</div>
     <div class="fibo-pct" style="color:${clr}">${sign}${diff.toFixed(1)}%</div>
   </td>`;
 }
@@ -1089,10 +1196,19 @@ function renderTable(data) {
 
   if (sortCol) {
     rows = [...rows].sort((a, b) => {
-      let av = a[sortCol], bv = b[sortCol];
-      if (av instanceof Date) av = av.getTime();
-      if (bv instanceof Date) bv = bv.getTime();
-      if (typeof av === 'string') return sortDir * av.localeCompare(bv);
+      // Handle pct virtual keys
+      const isPct   = sortCol.endsWith('pct');
+      const baseKey = isPct ? PCT_KEY_MAP[sortCol] : sortCol;
+      let av, bv;
+      if (isPct) {
+        av = a[baseKey] ? (a.price - a[baseKey]) / a[baseKey] : 0;
+        bv = b[baseKey] ? (b.price - b[baseKey]) / b[baseKey] : 0;
+      } else {
+        av = a[baseKey]; bv = b[baseKey];
+        if (av instanceof Date) av = av.getTime();
+        if (bv instanceof Date) bv = bv.getTime();
+        if (typeof av === 'string') return sortDir * av.localeCompare(bv);
+      }
       return sortDir * ((av || 0) - (bv || 0));
     });
   }
@@ -1138,58 +1254,189 @@ function renderTable(data) {
 }
 
 // ====================== SORT & FILTER ======================
+// Map pct virtual key -> base fibo key for sorting by %
+const PCT_KEY_MAP = {
+  f236pct:'f236', f382pct:'f382', f5pct:'f5',
+  f618pct:'f618', f702pct:'f702', f786pct:'f786', f86pct:'f86'
+};
+
 function sortBy(col) {
   if (sortCol === col) sortDir *= -1; else { sortCol = col; sortDir = 1; }
+
+  // Clear all active indicators
+  document.querySelectorAll('.fibo-sort-pct').forEach(el => el.classList.remove('active-sort'));
   document.querySelectorAll('thead th').forEach(th => th.classList.remove('sort-asc','sort-desc'));
-  const colMap = ['name','high','highDate','low','lowDate','amplitude','price','pctFromLow','pctFromHigh',
-                  'f236','f382','f5','f618','f702','f786','f86'];
-  const idx = colMap.indexOf(col);
-  if (idx >= 0) document.querySelectorAll('thead th')[idx].classList.add(sortDir === 1 ? 'sort-asc' : 'sort-desc');
+
+  // Highlight the right span or th
+  const isPct   = col.endsWith('pct');
+  const baseKey = isPct ? PCT_KEY_MAP[col] : col;
+  const fiboKeys = ['f236','f382','f5','f618','f702','f786','f86'];
+  const fiboIdx  = fiboKeys.indexOf(baseKey);
+
+  if (fiboIdx >= 0) {
+    // Find the fibo-th at this index and highlight the right span
+    const fiboThs = document.querySelectorAll('.fibo-th');
+    if (fiboThs[fiboIdx]) {
+      const span = fiboThs[fiboIdx].querySelector('.fibo-sort-pct');
+      if (span) span.classList.add('active-sort');
+      // Also show arrow on th
+      fiboThs[fiboIdx].classList.add(sortDir === 1 ? 'sort-asc' : 'sort-desc');
+    }
+  } else {
+    const colMap = ['name','high','highDate','low','lowDate','amplitude','price','pctFromLow','pctFromHigh',
+                    'f236','f382','f5','f618','f702','f786','f86'];
+    const idx = colMap.indexOf(col);
+    if (idx >= 0) document.querySelectorAll('thead th')[idx].classList.add(sortDir === 1 ? 'sort-asc' : 'sort-desc');
+  }
+
   renderTable(allData);
 }
 
 function filterTable() { renderTable(allData); }
 
 // ====================== EXPORT CSV ======================
-function exportCSV() {
+function exportExcel() {
   if (!allData.length) { alert('Chưa có dữ liệu!'); return; }
+  if (typeof XLSX === 'undefined') { alert('SheetJS chưa tải xong, thử lại sau!'); return; }
 
-  const headers = [
-    'Symbol','Chế Độ','Đỉnh (H)','Ngày Đỉnh','Đáy (L)','Ngày Đáy',
+  const FIBO_KEYS_EX = ['f236','f382','f5','f618','f702','f786','f86'];
+  const FIBO_LABELS  = ['0.236','0.382','0.500','0.618','0.702','0.786','0.860'];
+
+  const wb = XLSX.utils.book_new();
+  const ws = {};
+
+  // --- Style helpers ---
+  const mkStyle = (fontColor, bgColor, bold, alignH, wrap) => ({
+    font:      { bold: !!bold, color: { rgb: fontColor || 'E2E8F0' }, name: 'Arial', sz: 9 },
+    fill:      bgColor ? { patternType: 'solid', fgColor: { rgb: bgColor } } : undefined,
+    alignment: { horizontal: alignH || 'right', vertical: 'center', wrapText: !!wrap },
+    border:    { bottom: { style: 'thin', color: { rgb: '1E2D42' } },
+                 right:  { style: 'thin', color: { rgb: '1E2D42' } } }
+  });
+
+  const S = {
+    header:      mkStyle('FFFFFF', '0D1117', true, 'center', true),
+    coin:        mkStyle('E2E8F0', '080B12', true, 'left',   false),
+    mode:        mkStyle('A0AEC0', '080B12', false,'center', false),
+    high:        mkStyle('FF4757', '080B12', true, 'right',  false),
+    low:         mkStyle('00E5A0', '080B12', true, 'right',  false),
+    price:       mkStyle('E2E8F0', '080B12', true, 'right',  false),
+    date:        mkStyle('6B7280', '080B12', false,'center', false),
+    normal:      mkStyle('E2E8F0', '080B12', false,'right',  false),
+    pctUp:       mkStyle('00E5A0', '080B12', false,'right',  false),
+    pctDown:     mkStyle('FF4757', '080B12', false,'right',  false),
+  };
+
+  // Header background colors per fibo level
+  const FIBO_HDR_BG  = ['0E5A8A','2E3270','4A2580','7A4500','7A2E00','7A0000','5A0000'];
+  // Fibo value font colors
+  const FIBO_COLORS  = ['38BDF8','818CF8','A78BFA','F59E0B','F97316','EF4444','DC2626'];
+
+  const fiboNormal = (colorRgb) => mkStyle(colorRgb, '080B12', false, 'right', false);
+  const fiboTouched = (colorRgb) => ({
+    font:      { bold: true, color: { rgb: '00E5A0' }, name: 'Arial', sz: 9 },
+    fill:      { patternType: 'solid', fgColor: { rgb: '0A2E1E' } },
+    alignment: { horizontal: 'right', vertical: 'center' },
+    border:    { bottom: { style: 'thin', color: { rgb: '1E2D42' } },
+                 right:  { style: 'thin', color: { rgb: '1E2D42' } } }
+  });
+  const pctTouched = (isUp) => ({
+    font:      { bold: true, color: { rgb: isUp ? '00E5A0' : 'FF4757' }, name: 'Arial', sz: 9 },
+    fill:      { patternType: 'solid', fgColor: { rgb: '0A2E1E' } },
+    alignment: { horizontal: 'right', vertical: 'center' },
+    border:    { bottom: { style: 'thin', color: { rgb: '1E2D42' } },
+                 right:  { style: 'thin', color: { rgb: '1E2D42' } } }
+  });
+
+  const enc = (r, c) => XLSX.utils.encode_cell({ r, c });
+
+  // --- Header row ---
+  // Columns: fixed(10) + 7 fibo pairs [%,Giá] + TV = 25 cols total (0-24)
+  // Per fibo: col 10+fi*2 = % thay đổi, col 10+fi*2+1 = giá trị
+  const HEADERS = [
+    'Coin','Chế Độ','Đỉnh (H)','Ngày Đỉnh','Đáy (L)','Ngày Đáy',
     'Biên Độ','Giá Hiện Tại','% Từ Đáy','% Từ Đỉnh',
-    'Fibo 0.236','Fibo 0.382','Fibo 0.500','Fibo 0.618','Fibo 0.702','Fibo 0.786','Fibo 0.860',
+    ...FIBO_LABELS.flatMap(l => ['Fibo ' + l + '\n(Giá)', 'Fibo ' + l + '\n(% Giá)']),
     'TradingView Link'
   ];
 
-  const rows = allData.map(r => {
-    const tvLink = `https://www.tradingview.com/chart/?symbol=BINANCE:${r.symbol}&interval=D`;
-    return [
-      r.symbol,
-      r.mode === 'UP' ? 'Fibo Up' : 'Fibo Down',
-      r.high?.toFixed(6),        fmtDate(r.highDate),
-      r.low?.toFixed(6),         fmtDate(r.lowDate),
-      r.amplitude?.toFixed(6),
-      r.price?.toFixed(6),
-      r.pctFromLow?.toFixed(2) + '%',
-      r.pctFromHigh?.toFixed(2) + '%',
-      r.f236?.toFixed(6), r.f382?.toFixed(6), r.f5?.toFixed(6),
-      r.f618?.toFixed(6), r.f702?.toFixed(6), r.f786?.toFixed(6), r.f86?.toFixed(6),
-      tvLink
-    ];
+  HEADERS.forEach((h, ci) => {
+    let s = { ...S.header };
+    // Fibo columns start at ci=10, interleaved [%,Giá] pairs
+    if (ci >= 10 && ci <= 23) {
+      const fiboIdx = Math.floor((ci - 10) / 2);
+      const isPct   = (ci - 10) % 2 === 1; // odd offset = % col
+      s = { ...s, fill: { patternType: 'solid', fgColor: { rgb: FIBO_HDR_BG[fiboIdx] } } };
+      if (isPct) s = { ...s, font: { ...s.font, color: { rgb: 'CCDDCC' } } }; // slightly lighter for %
+    }
+    ws[enc(0, ci)] = { v: h, t: 's', s };
   });
 
-  const bom = '\uFEFF';
-  const csv = [headers, ...rows]
-    .map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(','))
-    .join('\n');
+  // --- Data rows ---
+  allData.forEach((r, ri) => {
+    const row    = ri + 1;
+    const tvLink = `https://www.tradingview.com/chart/?symbol=BINANCE:${r.symbol}&interval=D`;
 
-  const blob = new Blob([bom + csv], {type:'text/csv;charset=utf-8;'});
-  const a    = document.createElement('a');
-  a.href     = URL.createObjectURL(blob);
-  a.download = `fibo_scan_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
+    // Fixed cells
+    ws[enc(row,  0)] = { v: r.name,                                  t: 's', s: S.coin  };
+    ws[enc(row,  1)] = { v: r.mode === 'UP' ? 'Fibo Up' : 'Fibo Down', t: 's', s: S.mode };
+    ws[enc(row,  2)] = { v: r.high,                                   t: 'n', s: S.high  };
+    ws[enc(row,  3)] = { v: fmtDate(r.highDate),                      t: 's', s: S.date  };
+    ws[enc(row,  4)] = { v: r.low,                                    t: 'n', s: S.low   };
+    ws[enc(row,  5)] = { v: fmtDate(r.lowDate),                       t: 's', s: S.date  };
+    ws[enc(row,  6)] = { v: r.amplitude,                              t: 'n', s: S.normal};
+    ws[enc(row,  7)] = { v: r.price,                                  t: 'n', s: S.price };
+    ws[enc(row,  8)] = { v: r.pctFromLow  / 100, t: 'n', z: '+0.00%;-0.00%',
+                         s: r.pctFromLow  >= 0 ? S.pctUp : S.pctDown };
+    ws[enc(row,  9)] = { v: r.pctFromHigh / 100, t: 'n', z: '+0.00%;-0.00%',
+                         s: r.pctFromHigh >= 0 ? S.pctUp : S.pctDown };
+
+    // Fibo cols — interleaved [% col, Giá col] per fibo level
+    // col 10+fi*2 = % thay đổi, col 10+fi*2+1 = giá trị
+    FIBO_KEYS_EX.forEach((key, fi) => {
+      const val     = r[key];
+      const touched = r.touchedLevels?.includes(key);
+      const diff    = (r.price - val) / val;
+      const isUp    = diff >= 0;
+      const valCol  = 10 + fi * 2;
+      const pctCol  = 10 + fi * 2 + 1;
+
+      // Giá trị fibo (đứng trước)
+      ws[enc(row, valCol)] = {
+        v: val, t: 'n',
+        s: touched ? fiboTouched(FIBO_COLORS[fi]) : fiboNormal(FIBO_COLORS[fi])
+      };
+
+      // % thay đổi (đứng sau)
+      ws[enc(row, pctCol)] = {
+        v: diff, t: 'n', z: '+0.00%;-0.00%',
+        s: touched ? pctTouched(isUp) : (isUp ? S.pctUp : S.pctDown)
+      };
+    });
+
+    // TradingView link (col 24)
+    ws[enc(row, 24)] = {
+      v: tvLink, t: 's', l: { Target: tvLink },
+      s: mkStyle('00AADD', '080B12', false, 'left', false)
+    };
+  });
+
+  // Sheet range, col widths, row heights, freeze
+  // 25 cols total: 0-9 fixed, 10-23 fibo pairs [%,Giá]x7, 24 TV link
+  ws['!ref']  = XLSX.utils.encode_range({ s:{r:0,c:0}, e:{r:allData.length,c:24} });
+  ws['!cols'] = [
+    {wch:10},{wch:10},{wch:13},{wch:12},{wch:13},{wch:12},{wch:13},{wch:13},{wch:10},{wch:10},
+    // 7 fibo pairs: [%, Giá] each
+    {wch:10},{wch:13}, {wch:10},{wch:13}, {wch:10},{wch:13},
+    {wch:10},{wch:13}, {wch:10},{wch:13}, {wch:10},{wch:13}, {wch:10},{wch:13},
+    {wch:55}
+  ];
+  ws['!rows'] = [{hpt:30}, ...allData.map(() => ({hpt:20}))];
+  ws['!freeze'] = { xSplit:0, ySplit:1 };
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Fibo Scan');
+  XLSX.writeFile(wb, `fibo_scan_${new Date().toISOString().slice(0,10)}.xlsx`, { cellStyles: true });
 }
-
 // ====================== CUSTOM DATE PICKER ======================
 const dpValues = { from: null, to: null };
 let dpOpen = null; // 'from' | 'to'
