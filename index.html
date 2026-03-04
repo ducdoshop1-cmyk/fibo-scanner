@@ -35,7 +35,6 @@
     color: var(--text);
     font-family: var(--font);
     min-height: 100vh;
-    overflow-x: hidden;
     font-size: 13px;
   }
 
@@ -516,7 +515,35 @@
     overflow-x: auto;
     border-radius: 12px;
     border: 1px solid var(--border);
+    /* Hiện thanh scroll ngang rõ ràng */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) var(--surface2);
   }
+
+  /* Thanh cuộn ngang cố định dưới màn hình */
+  .scroll-mirror-wrap {
+    position: sticky;
+    bottom: 0;
+    z-index: 50;
+    overflow-x: auto;
+    overflow-y: hidden;
+    background: var(--surface2);
+    border-top: 1px solid var(--border);
+    border-radius: 0 0 12px 12px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent) var(--surface2);
+    height: 14px;
+    margin-top: -1px;
+  }
+
+  .scroll-mirror-inner {
+    height: 1px;
+  }
+
+  .scroll-mirror-wrap::-webkit-scrollbar { height: 10px; }
+  .scroll-mirror-wrap::-webkit-scrollbar-track { background: var(--surface2); }
+  .scroll-mirror-wrap::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 5px; opacity: 0.7; }
+  .scroll-mirror-wrap::-webkit-scrollbar-thumb:hover { background: #fff; }
 
   table { width: 100%; border-collapse: collapse; min-width: 1300px; }
 
@@ -640,10 +667,11 @@
   .empty-state p  { font-size: 11px; }
 
   /* ===== SCROLLBAR ===== */
-  ::-webkit-scrollbar { width: 5px; height: 5px; }
-  ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+  ::-webkit-scrollbar { width: 6px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--surface2); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+  ::-webkit-scrollbar-corner { background: var(--surface2); }
 
   @media(max-width:768px){
     .control-panel { flex-direction: column; }
@@ -779,7 +807,7 @@
   </div>
 
   <!-- TABLE -->
-  <div class="table-wrapper">
+  <div class="table-wrapper" id="tableWrapper">
     <table id="mainTable">
       <thead>
         <tr>
@@ -814,6 +842,10 @@
         </tr>
       </tbody>
     </table>
+  </div>
+  <!-- Thanh cuộn ngang cố định dưới cùng -->
+  <div class="scroll-mirror-wrap" id="scrollMirror">
+    <div class="scroll-mirror-inner" id="scrollMirrorInner"></div>
   </div>
 
 </div>
@@ -1598,6 +1630,41 @@ document.addEventListener('click', function(e) {
 
 // ====================== RUN ======================
 init();
+
+// ====================== SYNC HORIZONTAL SCROLL ======================
+(function() {
+  const wrapper = document.getElementById('tableWrapper');
+  const mirror  = document.getElementById('scrollMirror');
+  const inner   = document.getElementById('scrollMirrorInner');
+
+  function syncMirrorWidth() {
+    // inner width = scrollWidth của table-wrapper để tạo đúng khoảng kéo
+    inner.style.width = wrapper.scrollWidth + 'px';
+  }
+
+  // Sync scroll: kéo mirror → table scroll theo
+  mirror.addEventListener('scroll', () => {
+    if (wrapper.scrollLeft !== mirror.scrollLeft)
+      wrapper.scrollLeft = mirror.scrollLeft;
+  });
+
+  // Sync scroll: kéo table → mirror scroll theo
+  wrapper.addEventListener('scroll', () => {
+    if (mirror.scrollLeft !== wrapper.scrollLeft)
+      mirror.scrollLeft = wrapper.scrollLeft;
+  });
+
+  // Cập nhật width mỗi khi render bảng
+  const origRender = renderTable;
+  window.renderTable = function(...args) {
+    origRender(...args);
+    setTimeout(syncMirrorWidth, 50);
+  };
+
+  // Khởi tạo
+  syncMirrorWidth();
+  window.addEventListener('resize', syncMirrorWidth);
+})();
 </script>
 </body>
 </html>
