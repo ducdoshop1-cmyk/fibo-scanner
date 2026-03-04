@@ -677,12 +677,12 @@
     </div>
 
     <div class="ctrl-group">
-      <label>Lookback (nến 1D)</label>
+      <label>Chọn ngày quét</label>
       <select id="lookbackDays" onchange="onLookbackChange()">
-        <option value="60">60 nến</option>
-        <option value="90" selected>90 nến</option>
-        <option value="180">180 nến</option>
-        <option value="365">365 nến</option>
+        <option value="60">60 ngày</option>
+        <option value="90" selected>90 ngày</option>
+        <option value="180">180 ngày</option>
+        <option value="365">365 ngày</option>
         <option value="custom">Tùy chọn ngày…</option>
       </select>
     </div>
@@ -720,7 +720,7 @@
     <div class="coin-section-header">
       <h3>Danh sách coin cần quét</h3>
       <div class="coin-preset-btns">
-        <button class="preset-btn active" id="preset-top100" onclick="loadPreset('top100')">Top 100 (CoinGecko)</button>
+        <button class="preset-btn active" id="preset-top100" onclick="loadPreset('top100')">Top 100</button>
         <button class="preset-btn"        id="preset-all"    onclick="loadPreset('all')">Toàn bộ SPOT Binance</button>
         <button class="preset-btn"        id="preset-custom" onclick="loadPreset('custom')">Tự nhập</button>
       </div>
