@@ -699,8 +699,8 @@
     <div class="ctrl-group">
       <label>Chọn chế độ Fibo</label>
       <div class="mode-toggle">
-        <button class="mode-btn active-up"   id="btnUp"   onclick="setMode('UP')">▲ Fibo Up</button>
-        <button class="mode-btn"             id="btnDown" onclick="setMode('DOWN')">▼ Fibo Down</button>
+        <button class="mode-btn"             id="btnUp"   onclick="setMode('UP')">▲ Fibo Up</button>
+        <button class="mode-btn active-down" id="btnDown" onclick="setMode('DOWN')">▼ Fibo Down</button>
       </div>
     </div>
 
@@ -708,14 +708,14 @@
       <label>Chọn ngày quét</label>
       <select id="lookbackDays" onchange="onLookbackChange()">
         <option value="60">60 ngày</option>
-        <option value="90" selected>90 ngày</option>
+        <option value="90">90 ngày</option>
         <option value="180">180 ngày</option>
         <option value="365">365 ngày</option>
-        <option value="custom">Tùy chọn ngày…</option>
+        <option value="custom" selected>Tùy chọn ngày…</option>
       </select>
     </div>
 
-    <div class="ctrl-group" id="dateRangeGroup" style="display:none">
+    <div class="ctrl-group" id="dateRangeGroup" style="display:flex">
       <label>Khoảng thời gian</label>
       <div class="date-row">
         <div class="dp-wrap" id="dpFromWrap">
@@ -857,7 +857,7 @@ const FIBO_LEVELS = [0.236, 0.382, 0.5, 0.618, 0.702, 0.786, 0.86];
 const FIBO_KEYS   = ['f236','f382','f5','f618','f702','f786','f86'];
 const FIBO_CLASS  = {f236:'fibo-236',f382:'fibo-382',f5:'fibo-5',f618:'fibo-618',f702:'fibo-702',f786:'fibo-786',f86:'fibo-86'};
 
-let currentMode   = 'UP';
+let currentMode   = 'DOWN';
 let currentPreset = 'top100';
 let allData       = [];
 let sortCol       = null, sortDir = 1;
